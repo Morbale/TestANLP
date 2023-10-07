@@ -14,7 +14,7 @@ Open new terminal window and run following:
 conda activate nlpfromscratch
 python -m spacy download en_core_web_sm
 python -m spacy download en_core_web_lg
-conda install openjdk=11
+conda install openjdk=11    # download arm64 version depending on your machine
 bash serve_grobid.sh
 ```
 Go back to your original terminal window and run following, specifying the path to the ```.txt``` file that contains list of the pdf urls to be parsed. Not specifying the `filepath` argument will use `test_parsing.txt` to run it by default.
