@@ -1,0 +1,4 @@
+lxml==4.6.3 --prefer-binary
+-e git+https://github.com/titipata/scipdf_parser.git#egg=scipdf
+spacy==3.6
+bs4
