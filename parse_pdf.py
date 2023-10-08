@@ -7,7 +7,13 @@ import numpy as np
 from bs4 import BeautifulSoup
 import requests
 
-def crawl_acl(output_file, venue, year, count, volume = None):
+def crawl_acl(args):
+    output_file = args.urlpath
+    venue = args.venue
+    year = args.year
+    count = args.count
+    volume = args.volume
+
     page_url = "https://aclanthology.org/events/" + venue + "-" + str(year)
     if not volume:
         if venue == 'acl':
@@ -16,7 +22,7 @@ def crawl_acl(output_file, venue, year, count, volume = None):
             conf_id = str(year)+venue+'-main'
     else:
         conf_id = str(year)+volume
-        
+
     response = requests.get(page_url)
     if response.status_code != 200:
         raise Exception(f"Check if the page exists: {page_url}")
@@ -43,6 +49,7 @@ def crawl_acl(output_file, venue, year, count, volume = None):
     with open(output_file, 'w') as f:
         for paper in paper_list:
             f.write(f"{paper}\n")
+    return output_file
 
 
 
@@ -74,7 +81,7 @@ def url_to_dict(directory_name, idx, url, nlp):
 def process_urls(args):
     try:
         # create directory to store input files
-        filepath = args.filepath
+        filepath = args.urlpath
         directory_name = os.path.splitext(os.path.basename(filepath))[0]
         nlp = spacy.load("en_core_web_lg")
         if not os.path.exists(directory_name):
@@ -89,16 +96,32 @@ def process_urls(args):
                 url_to_dict(directory_name, str(idx), url, nlp)
         print(f"Finished parsing {len(urls)} urls")
     except FileNotFoundError:
-        print(f"File not found: {filepath}")
+        print(f"Crawl to create file first: {filepath}")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filepath", type=str, default = 'test_parsing.txt', help='.txt file containing urls of pdf to be parsed')
+    parser.add_argument("--crawl", action='store_true', help='start from crawlingl else parse the txt file')
+    parser.add_argument("--urlpath", type=str, default = 'test_parsing.txt', help='.txt file containing urls of pdf to be parsed')
+    
+    parser.add_argument("--venue", type=str, choices=['acl','emnlp','naacl'], default = 'acl', help='venue of the conference')
+    parser.add_argument("--year", type=int, choices = [2023, 2022, 2021], default = 2023, help='year of the conference')
+    parser.add_argument("--count", type=int, default = 10, help='number of papers to be parsed')
+    parser.add_argument("--volume", type=str, default = None, help='volume of the conference')
+    
     args = parser.parse_args()
     return args
 
 if __name__ == "__main__":
     args = get_args()
-    process_urls(args)
+    if args.crawl:
+        if args.volume:
+            print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}, volume {args.volume}')
+        else:
+            print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}')
+        crawl_acl(args)
+        process_urls(args)
+    else:
+        print('Skipping crawling, parsing from txt file')
+        process_urls(args)
