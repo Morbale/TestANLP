@@ -9,12 +9,7 @@ import requests
 from tqdm import tqdm
 import pandas as pd
 
-def crawl_acl(args):
-    output_file = args.urlpath
-    venue = args.venue
-    year = args.year
-    count = args.count
-    volume = args.volume
+def crawl_acl(output_file, venue, year, count, volume=None):
 
     page_url = "https://aclanthology.org/events/" + venue + "-" + str(year)
     if not volume:
@@ -48,10 +43,24 @@ def crawl_acl(args):
     paper_list = np.random.choice(paper_list, count, replace = False)
     
     # write txt file line by line in paper_lst
-    with open(output_file, 'w') as f:
+    with open(output_file, 'a') as f:
         for paper in paper_list:
             f.write(f"{paper}\n")
     return output_file
+
+def crawl_combination(args):
+    outfile = args.urlpath
+    if os.path.exists(outfile):
+        raise FileExistsError(f"File already exists, choose different name: {outfile}")
+    
+    with open(args.comb_dict, 'r') as f:
+        comb = json.load(f)
+    
+    for venue in comb.keys():
+        for year in comb[venue].keys():
+            crawl_acl(outfile, venue, year, comb[venue][year])
+    print("Finished crawling combination")
+
 
 nlp = spacy.load("en_core_web_lg")
 
@@ -113,6 +122,9 @@ def process_urls(args):
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--crawl", action='store_true', help='start from crawlingl else parse the txt file')
+    parser.add_argument("--use_comb", action='store_true', help='crawl using combination dict')
+    parser.add_argument("--comb_dict", type=str, default = 'comb_dict.json', help='dict containing combinations of venue and year')
+    
     parser.add_argument("--urlpath", type=str, default = 'test_parsing.txt', help='.txt file containing urls of pdf to be parsed')
     
     parser.add_argument("--venue", type=str, choices=['acl','emnlp','naacl'], default = 'acl', help='venue of the conference')
@@ -126,11 +138,16 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
     if args.crawl:
-        if args.volume:
-            print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}, volume {args.volume}')
+        if args.use_comb:
+            crawl_combination(args)
         else:
-            print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}')
-        crawl_acl(args)
+            if args.volume:
+                print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}, volume {args.volume}')
+                crawl_acl(args.urlpath, args.venue, args.year, args.count, args.volume)
+            else:
+                print(f'Crawling ACL Anthology, with {args.count} papers from {args.venue} {args.year}')
+                crawl_acl(args.urlpath, args.venue, args.year, args.count)
+            
         process_urls(args)
     else:
         print('Skipping crawling, parsing from txt file')

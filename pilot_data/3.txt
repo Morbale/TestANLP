@@ -1,0 +1,260 @@
+DaMSTF : Domain Adversarial Learning Enhanced Meta Self - Training for Domain Adaptation
+Self - training emerges as an important research line on domain adaptation . By taking the model 's prediction as the pseudo labels of the unlabeled data , self - training bootstraps the model with pseudo instances in the target domain . However , the prediction errors of pseudo labels ( label noise ) challenge the performance of self - training . To address this problem , previous approaches only use reliable pseudo instances , i.e. , pseudo instances with high prediction confidence , to retrain the model . Although these strategies effectively reduce the label noise , they are prone to miss the hard examples . In this paper , we propose a new self - training framework for domain adaptation , namely Domain adversarial learning enhanced Self - Training Framework ( DaMSTF ) . Firstly , DaMSTF involves meta - learning to estimate the importance of each pseudo instance , so as to simultaneously reduce the label noise and preserve hard examples . Secondly , we design a meta constructor for constructing the meta validation set , which guarantees the effectiveness of the meta - learning module by improving the quality of the meta validation set . Thirdly , we find that the meta - learning module suffers from the training guidance vanishment and tends to converge to an inferior optimal . To this end , we employ domain adversarial learning as a heuristic neural network initialization method , which can help the meta - learning module converge to a better optimal . Theoretically and experimentally , we demonstrate the effectiveness of the proposed DaMSTF . On the cross - domain sentiment classification task , DaMSTF improves the performance of BERT with an average of nearly 4 % .
+Introduction
+Domain adaptation , which aims to adapt the model trained on the source domain to the target domain , † contributed equally to this work * corresponding author attracts much attention in Natural Language Processing ( NLP ) applications ( Du et al . , 2020;Chen et al . , 2021;Lu et al . , 2022 ) . Since domain adaptation involves labeled data from the source domain and unlabeled data from the target domain , it can be regarded as a semi - supervised learning problem . From this perspective , self - training , a classical semi - supervised learning approach , emerges a prospective research direction on domain adaptation ( Zou et al . , 2019;Liu et al . , 2021 ) .
+Self - training consists of a series of loops over the pseudo labeling phase and model retraining phase . In the pseudo labeling phase , self - training takes the model 's prediction as the pseudo labels for the unlabeled data from the target domain . Based on these pseudo - labeled instances , self - training retrains the current model in the model retraining phase . The trained model can be adapted to the target domain by repeating these two phases . Due to the prediction errors , there exists label noise in pseudo instances , which challenges self - training approaches ( Zhang et al . , 2017 ) .
+Previous self - training approaches usually involve a data selection process to reduce the label noise , i.e. , preserving the reliable pseudo instances and discarding the remaining ones . In general , higher prediction confidence implies higher prediction correctness , so existing self - training approaches prefer the pseudo instances with high prediction confidence ( Zou et al . , 2019;Shin et al . , 2020 ) . However , fitting the model on these easy pseudo instances can not effectively improve the model , as the model is already confident about its prediction . On the contrary , pseudo instances with low prediction confidence can provide more information for improving the model , but contain more label noise at the same time .
+To simultaneously reduce the label noise and preserve hard examples , we propose to involve in meta - learning to reweight pseudo instances . Within a learning - to - learn schema , the meta - learning mod - ule learns to estimate the importance of every pseudo instance , and then , allocates different instance weights to different pseudo instances . Ideally , hard and correct pseudo instances will be assigned larger weights , while easy or error pseudo instances will be assigned smaller weights . To achieve this , the process in the meta - learning module is formulated as a bi - level hyperparameters optimization problem ( Franceschi et al . , 2018 ) , where instance weights are taken as the hyperparameters and determined by a series of meta - training steps and meta - validation steps . In the meta - training step , the model is virtually updated on the metatraining set with respect to the current instance weights . In the meta validation step , we validate the virtually updated model with an unbiased meta validation set , and optimize the instance weights with the training guidance back - propagated from the validation performance .
+According to the analysis in ( Ren et al . , 2018 ) , a high - quality meta validation set , which is clean and unbiased to the test set , is important for the effectiveness of the meta - learning algorithm . To this end , we propose a meta constructor oriented to the domain adaptation scenario . At each self - training iteration , the meta constructor selects out the most reliable pseudo instances and inserts them into the meta validation set . Since the instances in the meta validation set are all from the target domain and vary along with the self - training iterations , the data distribution in the constructed meta validation set approximates the one in the target domain . Thus , the meta constructor reduces the bias of the meta validation set . On the other hand , selecting the most reliable pseudo instances can reduce the label noise , making the meta validation set cleaner .
+Another challenge for the meta - learning module is the training guidance vanishment , referring to the gradient vanishment on hyperparameters . With a theoretical analysis , we attribute this problem to the gradient vanishment on the meta validation set . To this end , we introduce a domain adversarial learning module to perturb the model 's parameters , thereby increasing the model 's gradients on the meta validation set . In DaMSTF , we also interpret the domain adversarial learning module as a heuristic neural network initialization method . Before the model retraining phase , the domain adversarial learning module first initializes the model 's parameters by aligning the model 's feature space . For domain adaptation , the global optimal refers to the state where the model 's parameters are agnostic to the domain information but discriminative to the task information . Thus , the training process in the domain adversarial learning module makes the model 's parameters closer to the global optimal , serving as a heuristic neural network initialization .
+Our contributions can be summarized as follows :
+• • We propose a meta constructor to construct the meta validation set , which guarantees the effectiveness of the meta - learning module .
+• We theoretically point out the training guidance vanishment problem in the meta - learning module and propose to address this problem with a domain adversarial learning module .
+• Theoretically , We analyze the effectiveness of the DaMSTF in achieving domain adaptation . Experimentally , we validate the DaMSTF on two popular models , i.e. , BERT for the sentiment analysis task and BiGCN for the rumor detection task , with four benchmark datasets .
+Problem Formulation
+We denote the set that involves all instances in the source domain as D S , and denote the set that contains all instances in the target domain as D T .
+From D S , we can obtain a labeled dataset for training , i.e. , D S = { ( x i , y i ) } N i=1 . In text classification tasks , the input x i is a text from the input space X , the corresponding label y i is a C - dimensional one - hot label vector , i.e. , y i ∈ { 0 , 1 } C , where C is the number of classes . Based on D S , we learn a hypothesis , h : X → { 0 , 1 } C . Since D S comes from D S ( i.e. , D S ⊆ D S ) , the learned hypothesis h usually performs well on D S . When we transfer the hypothesis h from D S to D T , h may perform poorly due to the domain shift . The goal of domain adaptation is to adapt the hypothesis h to D T .
+In general , unlabeled text in the target domain is available ( Gururangan et al . , 2020 ) . We denote the unlabeled target domain dataset as
+D u T = { ( x m ) } U m=1
+, where x m ∈ X is a text input . In some cases , we can even access an in - domain dataset , i.e. , a small set of labeled data in the target Sort the D p T with respect to H in ascending order , and denote the first K data as DE , the remaining data as D tr T 6 :
+DM = D l T ∪ DE 7 : DOMAINADVERSARIAL(DS ∪ D u T , θF , ϑ ) 8 :
+METALEARNING(DS ∪ D tr T , θ , w ) 9 : end while 10 : function METALEARNING(D , θ , w ) 11 :
+for training batch B in D do 12 :
+for t=1 → TM do 13 :
+Computeθ(w t ) via Eq . ( 3 ) 14 :
+Compute weight w t+1 via Eq . ( 6 ) 15 :
+end for 16 :
+w * ← w T M , update θ with Eq . ( 7 ) 17 :
+end for 18 :
+return θ , w 19 : end function 20 : function DOMAINADVERSARIAL(D , θF , ϑ ) 21 :
+for training batch B in D do 22 :
+for t=1 → TD do 23 :
+ϑ = ϑ − η1 ϑ LDA(θF , ϑ , B ) 24 :
+end for 25 :
+for t=1 → TG do 26 :
+θF = θF + η2 θ LDA(θF , ϑ , B ) 27 : end for 28 :
+end for 29 :
+return θ , ϑ 30 : end function domain , which is denoted as D l T = { ( x j , y j ) } L j=1 ( x i ∈ X and y i ∈ { 0 , 1 } C ) . When D l T = ∅ , the task is a case of unsupervised domain adaptation ( Wilson and Cook , 2020 ) . Otherwise , the task is a case of semi - supervised domain adaptation ( Saito et al . , 2019 ) .
+Methodology
+Model Overview
+DaMSTF inherits the basic framework of selftraining , which consists of iterations over the " Pseudo Labeling " phase and the " Model Retraining " phase . To achieve domain adaptation , selftraining simultaneously optimizes the model 's parameters and the pseudo labels with Eq . ( 1 ) .
+min θ , Ŷ T Lst(θ , ŶT ) = ( x k , y k ) ∈D S E(Φ(x k ; θ ) , y k ) + x i ∈D u T E(Φ(xi ; θ),ŷ(xi))(1 )
+whereŶ T = [ ŷ 1 , ŷ 2 , . . . , ŷ |D u T | ] T denotes the pseudo label set of the unlabeled target domain data , Φ θ denotes the model under the hypothesis ( h ) , and θ denotes the model 's parameters .
+In the pseudo labeling phase , DaMSTF predicts the unlabeled data in the target domain , and the predictions are taken as pseudo labels . Then , these pseudo instances are sent to the meta constructor . For the instances with high prediction confidence , the meta constructor uses them to expand the meta validation set . For the remaining ones , the meta constructor uses them to construct the meta - training set .
+In the model retraining phase , DaMSTF first trains the model in the domain adversarial training module to align the feature space . Then , the model is trained in the meta - learning module . Afterward , DaMSTF backs to the pseudo labeling phase to start another self - training iteration .
+Fig . 1 shows the structure of DaMSTF , and Algorithm 1 presents the corresponding pseudo - code .
+Meta - Learning Module
+As described in Fig . 1 , the meta - learning module involves a series of loops over the " Meta Training " step and " Meta Validation " step to optimize the hyper - parameters and the model parameters .
+Meta Training . The training batch in the meta training phase , i.e. , B = { ( x 1 , y 1 ) , ( x 2 , y 2 ) , . . . } , merges the labeled data from the source domain with the pseudo labeled data from the target domain . The supervision on the pseudo instances is the pseudo - label , and the supervision on the labeled instances is the ground - truth label . We compute the risk loss on the training batch with Eq . ( 2 ):
+LT ( θ , w t , B ) = 1 |B| x i , y i ∈B σ(w t i ) E(Φ(xi ; θ ) , yi)(2 )
+where |B| is the size of B , E is the loss function . Φ θ denotes the model under the hypothesis ( h ) , and θ denotes the model 's parameters .
+θ(w t ) = θ − η θ LT ( θ , w t , B)(3 )
+where η is the learning rate .   Meta Validation After being virtually updated in the meta training phase , the model is validated on the meta validation set D M with Eq . ( 4 ):
+LM ( θ(w t ) ) = 1 |DM | • x j , y j ∈D M E(Φ(xj;θ(w t ) ) , yj ) ( 4 )
+where E is the loss function , |D M | is the size of the meta validation set . By backpropagating the performance on the meta validation set , we derive the training guidance for updating the instance weights on the training batch as below :
+∂LM ( θ(w ) ) ∂w = ∂LM ( θ(w ) ) ∂θ(w ) • ∂θ(w ) ∂w(5 )
+To reduce the computation cost , we use the approximation technique in ( Chen et al . , 2021 ) to compute the training guidance ( i.e. , ∂L M ( θ(w ) )
+∂w
+) . Based on the computed training guidance , we obtain the optimal instance weights ( marked as w * ) with gradient descent algorithm , as described in Eq . ( 6 ) . Further , we update θ with Eq . ( 7 ):
+w t+1 = w t − γ • ∂L M ( θ(w ) ) ∂w ( 6 ) θ t+1 = θ t − η θ LT ( θ , w * , B)(7 )
+After the above process is completed on the training batch B , another training batch will be selected to start the meta - learning phase again , as shown in lines 15 - 21 in Algorithm 1 .
+Meta Constructor
+In previous studies , the meta validation set is constructed by collecting a set of labeled data that have the same distribution as the test set ( Ren et al . , 2018;Shu et al . , 2019 ) . However , such practice is not acceptable in domain adaptation , as we are not aware of the data distribution of the target domain during the training phase .
+To this end , we propose a meta constructor to construct a meta validation set that approximates the target domain . Specifically , we select the reliable instances from the pseudo - labeled data as the instances in the meta validation set . To evaluate the reliability of each of the pseudo instances , we compute their prediction entropy via Eq . ( 8) :
+H(xi ) = − C c=1 ( Φ(c|xi ; θ ) • log(Φ(c|xi ; θ)))(8 )
+where Φ(c|x i ; θ ) is the probability of the instance x i belongs to the c th category .
+In general , a lower prediction entropy indicates a higher prediction correctness ( Nguyen et al . , 2020 ) . Thus , we first sort the D p T ( pseudo labeled dataset ) in ascending order according to their prediction entropy . Then , the top - ranked K instances , denoted as D E , are selected as the validation instances , and the remaining pseudo samples , denoted as D tr T , are preserved in the meta training set .
+In the semi - supervised domain adaptation , we take the in - domain dataset to initialize the meta validation dataset and use D E to expand the meta validation set along with the self - training iterations . In the unsupervised domain adaptation , where the in - domain dataset is empty , we directly take D E as the meta validation set . The above process is detailed in lines 2 - 8 of Algorithm 1 .
+Here , meta constructor is an important knot that combines meta - learning and self - training . On the one hand , traditional machine learning approaches can not exploit the pseudo instances with high prediction entropy , due to the inherent label noise . In this case , the meta constructor uses them to construct the meta training set , as the meta - learning module is tolerant to the label noise in the metatraining set . On the other hand , pseudo instances with low prediction entropy can not provide extra information for improving the model but contain less label noise . In this case , the meta constructor uses them to validate the model , i.e. , uses them to construct or expand the meta validation set , which can improve the quality of the meta validation set .
+Domain Adversarial Learning
+As theoretically explained in § 4.1 , the training guidance would not be indicative if the model 's gradient on the validation instance is negligible . The presence of domain adversarial learning can prevent the gradient vanishment on the meta validation set , thereby preventing the training guidance vanishment . On the other hand , domain adversarial learning can explicitly align the feature space along with the self - training iterations .
+To present the details in the domain adversarial learning module , we divide the model Φ(• ; θ ) into two parts : the feature extraction layer Φ F ( • ; θ F ) and the task - specific layer Φ c ( • ; θ c ) . Usually , θ c is the parameters of the last layer in the model , whose output is the prediction probability of each category . The prediction process in the model is :
+Φ(xi ; θ ) = Φc(ΦF ( xi ; θF ) ; θc)(9 )
+Following Ganin et al . ( 2016 ) , we introduce an extra domain discriminator to discriminate the instances ' domains , i.e. , ϕ(• ; ϑ ) , where ϑ is the parameters . On a training batch B , the risk loss for domain adversarial learning is :
+LDA(θF , ϑ , B ) = 1 |B| x i , d i ∈B E(ϕ(ΦF ( xi ; θF ) ; ϑ ) , di ) ( 10 )
+where d i is a one - hot vector representing the domain of x i , E is the cross - entropy function . The specific training process of the proposed domain adversarial learning module is depicted in Algorithm 1 , lines 25 - 35 .
+Theoretical Analysis
+This section first introduces the training guidance vanishment problem and then explains the effectiveness of DaMSTF in achieving domain adaptation . The proofs are detailed in Appendix . A and Appendix . B.
+Training Guidance Vanishment
+Theorem 1 . Let w i be the weight of the training instance i , denoted as ( x i , y i ) , in B , the gradient of w i on L M can be represented by the similarity between the gradients on training instance i and the gradients on the meta validation set :
+∂LM ( θ(w ) ) ∂wi = − η |B| • [ 1 |DM | |D M | j=1 gθ(xj , yj ) T ] • g θ ( xi , yi )
+where
+1 |D M | |D M | j=1 gθ(x j , y j ) T is the gradients of θ on D M , g i θ ( x i , y i )
+is the gradients of θ on the training instance i , η is the learning rate in Eq . ( 3 ) According to Theorem 1 , ∂L M ( θ(w ) ) ∂w i is not indicative for every training instance if the model 's gradient on the meta validation set ( i.e. ,
+1 |D M | |D M | j=1 gθ(x j , y j )
+) is very small , which we named as the training guidance vanishment problem . In DaMSTF , the meta - learning module is challenged by the training guidance vanishment problem from the following aspects .
+Firstly , the meta validation set is much smaller than the meta training set , so the model converges faster on the meta validation set than that on the meta training set . Considering the optimization on neural networks is non - convex , the model can converge to an inferior optimal if it converges too early on the meta validation set . In this case , the model 's gradient on the meta validation set is very small , which results in the training guidance vanishment .
+Secondly , the instances in D E are the ones with small prediction entropy . Since the supervision for the pseudo instances is exactly the model 's predictions , lower prediction entropy results in lower risk loss . Then , the gradients back - propagated from the risk loss are negligible , which also results in the training guidance vanishment .
+Theoretical Explanation of DaMSTF
+The disagreement and H∆H - distance were first proposed in Ben - David et al . ( 2010 ) and have been widely applied to analyze the effectiveness of domain adaptation approaches ( Saito et al . , 2019;Du et al . , 2020 ) . For any two different hypotheses h 1 and h 2 , disagreement D ( h 1 , h 2 ) quantifies the discrepancy of their different predictions on a specific dataset D. When h 2 is an ideal hypothesis that can correctly map all instances in D , D ( h 1 , h 2 ) also represents the error rate of the hypothesis h 1 on dataset D , abbreviated as D ( h 1 ) . H∆H - distance is a metric for evaluating the divergence of the data distribution between two datasets , which is only relevant to the input space of the datasets . Theorem 2 . Assume there exists an ideal hypothesis , denoted as h * , which correctly maps all instances in the target domain to their groud - truth labels . In the self - training iteration t , let D l T ( h t ) and D E ( h t ) be the error rate of the hypothesis h t on D l T and D E , respectively . Then , the error rate of the hypothesis h t on the target domain is upper bounded by :
+D T ( h t ) ≤ D l T ∪D E ( h t ) + 1 2 dH∆H ( DT , D l T ∪ DE ) + ρ • D E ( h * , h t−1 )
+where
+ρ = |D E | |D l T |+|D E | is a coefficient related to the size of D l T and D E , D l T ∪D E ( h t )
+is the error rate of the hypothesis h t on the union of D l T and D E . Theorem 3 . Assume there exists three datasets , D 1 , D 2 , D 3 , and let X 1 , X 2 , X 3 denotes the set of input cases in these three datasets , i.e. ,
+X 1 = { x i |(x i , y i ) ∈ D 1 } , X 2 = { x i |(x i , y i ) ∈ D 2 } , X 3 = { x i |(x i , y i ) ∈ D 3 } . If X 1 ⊆ X 2 ⊆ X 3 , then d H∆H ( D 2 , D 3 ) ≤ d H∆H ( D 1 , D 3 ) holds
+Based on Theorem 2 , we demonstrate the effectiveness of DaMSTF from the following aspects .
+First of all , expanding the meta validation set can decrease the second term in Theorem 2 , i.e. , Last but not least , by selecting examples that have the lowest prediction entropy , the error rate on D E is much lower than that of the expected error rates on D p T , formally ,
+D E ( h * , h t−1 ) < D p T ( h * , h t−1 ) .
+In other words , the data selection process in the meta constructor reduces the third term in Theorem 2,i.e . , ρ • D E ( h * , h t−1 ) .
+Experiments
+We provide the experiment settings in § 5.1 and compare DaMSTF with previous domain adaptation approaches in § 5.2 . In § 5.3 , we analyze the effectiveness of the meta constructor and the domain adversarial learning module with an ablation study . § 5.4 validate that exposing more unlabeled data to DaMSTF can improve the domain adaptation performance ( Theorem 3 ) . Appendix E provides extra experiments of the domain adversarial learning module in preventing the training guidance vanishment problem , and the meta - learning module in highlighting the hard and correct pseudo instances .
+Experiment Settings
+Dataset On the rumor detection task , we conduct experiments with the public dataset TWIT - TER ( Zubiaga et al . , 2016 ) . As the instances in the TWITTER dataset are collected with five topics , we categorized the instances into five domains . On the sentiment classification task , we conduct experiments withs the public dataset Amazon ( Blitzer et al . , 2007 ) . We follow the method in ( He et al . , 2018 ) to preprocess the Amazon dataset , and the resultant dataset consists of 8,000 instances from four domains : books , dvd , electronics , and kitchen . More statistics about the TWITTER dataset and the Amazon dataset can be found in Appendix D.
+Implementation Details The base model on the rumor detection task is BiGCN ( Bian et al . , 2020 ) , while the base model on the sentiment classification task is BERT ( Devlin et al . , 2019 ) . On the benchmark datasets , we conduct domain adaptation experiments on every domain . When one domain is taken as the target domain for evaluation , the rest domains are merged as the source domain . More impelementation details are provided in Appendix C.
+Comparing Methods Since the DaMSTF can be customized to both semi - supervised and unsupervised domain adaptation scenarios , the baselines contain both unsupervised and semisupervised domain adaptation approaches . For the unsupervised domain adaptation , Out ( Chen et al . , 2021 ) , DANN ( Ganin et al . , 2016 ) and CRST ( Zou et al . , 2019 ) are selected as the baselines , while In+Out ( Chen et al . , 2021 ) , MME ( Saito et al . , 2019 ) , BiAT ( Jiang et al . , 2020 ) , and Wind ( Chen et al . , 2021 ) are selected as the baselines for the semi - supervised domain adaptation . Out and In+Out are two straightforward ways for realizing unsupervised and semi - supervised domain adaptation , where Out means the base model is trained on the out - of - domain data ( i.e. , labeled source domain data ) and In+Out means the base model is trained on both the in - domain and the out - of - domain data . The core of DANN is an adversarial learning algorithm that takes the domain classification loss as an auxiliary loss . CRST is also a self - training method that uses a label regularization technique to reduce the label noise from mislabeled data . WIND is a meta - learning - based domain adaptation approach that optimizes the weights of different training instances . The difference between the WIND and DaMSTF lies in that , ( i ) WIND only use the labeled source data to construct the meta training set , while the meta training set in the DaMSTF contains both the labeled data from the source domain and the pseudo data from the target domain . ( ii ) WIND does not consider the training guidance vanishment problem and the bias between the test set ( i.e. , target domain ) and the meta validation set .
+Results
+To validate the effectiveness of the meta selftraining , we conduct unsupervised and semisupervised domain adaptation experiments on two benchmark datasets , i.e. , BiGCN on TWITTER , and BERT on Amazon . Since the rumor detec - tion task focuses more on the ' rumor ' category , we evaluate different models by their F1 score in classifying the ' rumor ' category . On the sentiment classification task , the prediction accuracy of different classes is equally important , so we take the macro - F1 score to evaluate different models . For semi - supervised domain adaptation , 100 labeled instances in the target domain are taken as the indomain dataset . The experiment results are listed in Tab . 1 , Tab . 2 .
+As shown in Tab . 1 , Tab . 2 , DaMSTF outperforms all baseline approaches on all benchmark datasets . On the rumor detection task , DaMSTF surpasses the best baseline approaches ( CRST for unsupervised domain adaptation , WIND for semisupervised domain adaptation ) by nearly 5 % on average . For the " Fer . " domain , where most approaches perform worse than the Out and In+Out , DaMSTF still achieves an F1 value of 0.629 , which is 40 % higher than that of the In+Out . On the sentiment classification task , DaMSTF also outperforms other approaches . Under the unsupervised domain adaptation scenario , DaMSTF surpasses the best baseline approach ( DANN on the Amazon dataset ) by nearly 2 % on average . Under the semisupervised domain adaptation scenario , DaMSTF surpasses Wind , the best baseline approach on the Amazon dataset , by nearly 3 % on average .
+Ablation Study
+This subsection presents an ablation study to understand the effectiveness of the DaMSTF . As illustrated in § 3 and § 4.2 , DaMSTF combines metalearning and self - training via two strategies : ( i ) expanding the meta validation set with a meta constructor ; ( ii ) preventing the training guidance vanishment problem with a domain adversarial module . Thus , we separately remove the above strategies from the DaMSTF , yielding three different variants , As shown in Tab . 3 and Tab . 4 , both strategies are indispensable for the effectiveness of DaMSTF ,      and removing either strategy can result in performance degeneration . Removing the domain adversarial learning module ( DaMSTF -w / o D ) leads to an average decrease from 0.713 to 0.623 on the TWITTER dataset and from 0.942 to 0.918 on the Amazon dataset . Without expanding the meta validation set , DaMSTF -w / o E performs worse than DaMSTF on both the TWITTER dataset ( 0.630 vs. 0.731 on average ) and the Amazon dataset(0.931 vs. 0.942 on average ) . After removing both strategies , DaMSTF suffers a severe performance deterioration on both benchmark datasets .
+Effect of the unlabeled dataset size
+As illustrated in § 4.2 , the second term
+d H∆H ( D T , D l T ∪ D E ) is close to d H∆H ( D T , D u T )
+in the whole training process . From this perspective , increasing the size of the unlabeled dataset can improve the performance . To validate this , we separately expose 0 % , 5 % , 10 % , 20 % , 30 % , 40 % , 50 % , 60 % , 70 % , 80 % , 90 % , 100 % of the unlabeled data during the training . These new unlabeled dataset are denote as D u T ( 0 % ) , D u T ( 5 % ) , . . . , D u T ( 100 % ) respectively . The experiments are conducted on " Ott . " Domain of TWITTER and the results are presented in Fig . 2 . From Fig . 2 , we observe that the model performs poorly when using a small proportion of the unlabeled data in the training process . For example , exposing D u T ( 5 % ) to the DaMSTF only achieves an F1 score of 0.701 , which is 14.2 % lower than the 0.843 achieved by exposing the D u T ( 100 % ) . From 0 % to 50 % , increasing the exposure ratio consistently improves the F1 score . The improvements saturate after more than 50 % of the unlabeled data are exposed , which can be explained by the law of large numbers in the statistic theory ( Kraaikamp and Meester , 2005 ) . An exposure ratio of 50 % can be regarded as a large number for approaching the unlabeled dataset . Thus , D u T ( 50 % ) is close to D u T ( 100 % ) and d H∆H ( D T , D u T ( 50 % ) ) approximates d H∆H ( D T , D u T ( 100 % ) ) , which leads to the performance saturation .
+6 Related Work
+Domain Adaptation
+Inspired by the taxonomy in Ramponi and Plank ( 2020 ) , we categorize the domain adaptation approaches into two categories : Feature - Alignment approaches and Data - Centric approaches . Feature - Alignment approaches ( Tzeng et al . , 2014;Ganin et al . , 2016;Saito et al . , 2019 ) focus on aligning the feature space across domains . The most well - known feature - alignment approach is DANN ( Ganin et al . , 2016 ) , which aligns the feature space by min - max the domain classification loss . With similar efforts , MME ( Saito et al . , 2019 ) min - max the conditional entropy on the unlabeled data . VAT ( Miyato et al . , 2018 ) , as well as BiAT ( Jiang et al . , 2020 ) , propose to decouple the min - max optimization process , which first imposes a gradient - based perturbation on the input space to maximize the risk loss and then minimize the final objective on the perturbed input cases . In contrast , Data - Centric approaches exploit the unlabeled data in the target domain or select the relevant data from the source domain . To select relevant data , ( Moore and Lewis , 2010;Plank and van Noord , 2011 ) design a technique based on topic models for measuring the domain similarity . To exploit the unlabeled data , pseudo labeling approaches , including self - training ( Zou et al . , 2019 ) , co - training ( Chen et al . , 2011 ) , and tri - training ( Saito et al . , 2017 ) , are widely applied and become an important direction . In the research of self - training for domain adaptation , many efforts are put into reducing the label noise of pseudo instances ( Zou et al . , 2019(Zou et al . , , 2018Liu et al . , 2021 ) . Among them , CRST ( Zou et al . , 2019 ) proposes a label regularization technique to reduce label noise while CST ( Liu et al . , 2021 ) takes Tsallis - entropy as a confidence - friendly regularize . In this paper , we propose to adopt metalearning to automatically reduce label noise .
+Meta - Learning
+Meta - learning is an emerging new branch in machine learning that focuses on providing better hyperparameters for model training , including but not limited to better initial model parameters , e.g. , MAML ( Finn et al . , 2017 ) , better learning rates , e.g. , MetaSGD ( Li et al . , 2017 ) , and better neural network architect , e.g. , DARTs ( Liu et al . , 2018 ) . Recent studies revealed the prospect of providing better instance weights ( Ren et al . , 2018;Shu et al . , 2019;Kye et al . , 2020 ) . When using prototypi - cal learning on the few - shot image classification task , MCT ( Kye et al . , 2020 ) involves a reweighing process to obtain a more accurate class prototype . Oriented to natural language processing tasks , Chen et al . , 2021 ) use the optimization - based meta - reweighting algorithm to refine the training set . Similar to DaMSTF , Wang et al . ( 2021 ) also proposes to combine the metalearning algorithm and the self - training approach , but their method focuses on the neural sequence labeling task rather than the domain adaptation task . Also , they do not consider the bias between the meta - validation set and the test set , whereas reducing such bias is an important contribution of the DaMSTF . WIND ( Chen et al . , 2021 ) is a meta - learning - based domain adaptation approach , the differences between WIND and DaMSTF are discussed in § 5.1 .
+Conclusion
+This paper proposes an improved self - training framework for domain adaptation , named DaMSTF . DaMSTF extends the basic framework for selftraining approaches by involving a meta - learning module , which alleviates the label noise problem in self - training . To guarantee the effectiveness of the meta - learning module , we propose a meta constructor to improve the quality of the meta validation set , and propose a domain adversarial module to prevent the training guidance vanishment . Also , the domain adversarial learning module can align the feature space along with the self - training iterations . Extensive experiments on two popular models , BiGCN and BERT , verify the effectiveness of DaMSTF . The ablation studies demonstrate that the meta - learning module , the meta constructor , and the domain adversarial module are indispensable for the effectiveness of the DaMSTF . The limitation , ethical considerations , and social impacts of this paper are in Appendix F and G.
+A Proof For Theorem 1 Theorem 1 . Let w i be the weight of the training instance i , denoted as ( x i , y i ) , in B , the gradient of w i on L M can be represented by the similarity between the gradients on training instance i and the gradients on the meta validation set :
+∂LM ( θ(w ) ) ∂wi = − η |B| • [ 1 |DM | |D M | j=1 gθ(xj , yj ) T ] • g θ ( xi , yi )
+where
+1 |D M | |D M | j=1 gθ(x j , y j ) T is the gradients of θ on D M , g i θ ( x i , y i )
+is the gradients of θ on the training instance i , η is the learning rate in Eq . ( 3 ) Proof . Based on Eq . ( 2 ) and Eq . ( 3 ) in § 3.2 , we conclude the pseudo updated parametersθ(w ) as :
+θ(w ) = θ − η • 1 |B| • x i , y i ∈B σ(wi ) • ∂E(Φ(xi ; θ ) , yi ) ∂θ(11 )
+We then take the gradient of w i onθ(w ) as :
+∂θ(w ) ∂σ(wi ) = − η |B| • ∂E(Φ(xi ; θ ) , yi ) ∂θ(12 )
+Based on Eq . ( 12 ) , we derivate the gradient of w i on L M as :
+∂LM ( θ(w ) ) ∂wi = [ ∂LM ( θ(w ) ) ∂θ(w ) ] T • [ ∂θ(w ) ∂σ(wi ) ] • [ ∂σ(w ) ∂w ] = [ 1 |DM | • |D M | j=1 ∂E(Φ(xj;θ(w ) ) , yj ) ∂θ(w ) ] T • [ − η |B| • ∂E(Φ(xi ; θ ) , yi ) ∂θ ] • [ σ(wi)(1 − σ(wi ) ) ] = − ησ(wi)(1 − σ(wi ) ) |B| • [ 1 |DM | |D M | j=1 gθ(xj , yj ) T ] • g θ ( xi , yi)(13 )
+where the second line is obtained by substituting L M andθ with Eq . ( 4 ) and Eq . ( 11 ) . Substitute gθ(x j , y j ) = ∂E(Φ(x j ; θ(w)),y j ) ∂θ(w ) and g θ ( x i , y i ) = ∂E(Φ(x i ; θ),y i ) ∂θ and rearrange the terms , we obtain the third line . The proof of Theorem 1 is completed .
+B Proof For Theorem 2 and Theorem 3 Definition 1 . disagreement is a measure to quantify the different performances of two different hypotheses on a specific dataset . Denote the two hypotheses as h 1 and h 2 , and denote the specific dataset as D , then the disagreement of h 1 and h 2 on D is formulated as :
+D ( h1 , h2 ) = 1 |D| |D| i=1 [ 1 C * ||h1(x ) − h2(x)||1](14 )
+where C is the number of classes , h 1 ( x ) and h 2 ( x ) are one - hot vectors representing the models ' predictions . Definition 2 . H∆H - distance is a metric for evaluating the divergence of the data distribution between two datasets . Formally , H∆H - distance is computed as :
+dH∆H(D1 , D2 ) = 2 sup h 1 , h 2 ∈H | D 1 ( h1 , h2 ) − D 2 ( h1 , h2)| ( 15
+)
+where H is the hypothesis space and sup denotes the supremum .
+The concepts disagreement and H∆H - distance are introduced in Definition 1 and Definition 2 , respectively . Based on the disagreement and H∆Hdistance , the proof for Theorem 2 is presented as below .
+Lemma 1 . Assume there exists two dataset , i.e. ,
+D 1 , D 2 . Let X 1 = { x i |(x i , y i ) ∈ D 1 } and X 2 = { x i |(x i , y i ) ∈ D 2 } denotes the set of input case from D 1 and D 2 . If X 1 ⊆ X 2 , then d H∆H ( D 1 , D 2 ) = 2 • |D 2 | − |D 1 | |D 2 | holds . Proof . Let I k ( h 1 , h 2 ) = 1 C * ||h 1 ( x k ) − h 2 ( x k )
+|| 1 denote the difference of two hypothesis h 1 and h 2 on instance x k , then the disagreement of h 1 and h 2 on the dataset D can be rewritten as :
+D ( h 1 , h 2 ) = 1 |D| |D| i=1 I i ( h 1 , h 2 )
+Based on the Definition 2 , the H∆H distance between D 1 and D 2 is as below :
+dH∆H ( D1 , D2 ) = 2 sup h 1 , h 2 ∈H | D 1 ( h1 , h2 ) − D 1 ( h1 , h2)| ( 16 )
+Expanding the item D 1 ( h1 , h2 ) and D 1 ( h1 , h2 ) , we can obtain :
+| D 2 ( h1 , h2 ) − D 1 ( h1 , h2)| = | 1 |X2| x i ∈X 2 Ii(h1 , h2 ) − 1 |X1| x i ∈X 1 Ii(h1 , h2)| = | |X1| |X2| * 1 |X1| x i ∈X 1 Ii(h1 , h2 ) + |X1| |X2| * 1 |X1| x k ∈X 1 Ii(h1 , h2 ) − 1 |X1| x i ∈X 1 Ii(h1 , h2)| = | 1 |X2| x k ∈X 1 I k ( h1 , h2 ) − |X2| − |X1| |X2| • 1 |X1| x i ∈X 1 Ii(h1 , h2)| = 1 |X2| | x k ∈X 1 I k ( h1 , h2 ) − |X1| |X1| • x i ∈X 1 Ii(h1 , h2)| = |X1| |X2| | D 1 ( h1 , h2 ) − D 1 ( h1 , h2)| ( 17
+)
+whereX 1 is the complement set of X 1 in X 2 , i.e , X 1 = X 2 − X 1 . Correspondingly , D 1 = { ( x i , y i ) |(x i , y i ) ∈ D 2 and x i ∈X } , and thus |X 1 | = |D 1 | holds . As 0 ≤ D 1 ( h 1 , h 2 ) ≤ 1 and 0 ≤ D 1 ( h 1 , h 2 ) ≤ 1 ,
+we conclude the inequation below :
+| D 1 ( h 1 , h 2 ) − D 1 ( h 1 , h 2 ) | ≤ 1 ( 18 )
+Since D 1 andD 1 do not overlap , D 1 ( h 1 , h 2 ) is independent of D 1 ( h 1 , h 2 ) . Thus , we can maximize the left term in inequation ( 18 ) by finding two hypothesesĥ 1 andĥ 2 , which make D 1 ( ĥ 1 , ĥ 2 ) = 1 and D 1 ( ĥ 1 , ĥ 2 ) = 0 . Thus ,
+dH∆H ( D1 , D2 ) = 2 sup h 1 , h 2 ∈H | D 2 ( h1 , h2 ) − D 1 ( h1 , h2)| = 2 • |X1| |X2| sup h 1 , h 2 ∈H | D 1 ( h1 , h2 ) − D 1 ( h1 , h2)| = 2 • |D1| |D2| sup h 1 , h 2 ∈H | D 1 ( h1 , h2 ) − D 1 ( h1 , h2)| = 2 • |D1| |D2| | D 1 ( ĥ1,ĥ2 ) − D 1 ( ĥ1,ĥ2)| = 2 • |D1| |D2| = 2 • |D2| − |D1| |D2|
+The proof of Lemma 1 is completed .
+Theorem 2 . Assume there exists an ideal hypothesis , denoted as h * , which correctly map all instances in the target domain to their groud - truth labels . In the self - training iteration t , let D l T ( h t ) and D E ( h t ) be the error rate of the hypothesis h t on D l T and D E , respectively . Then , the error rate of the hypothesis h t on the target domain is upper bounded by :
+D T ( h t ) ≤ D l T ∪D E ( h t ) + 1 2 dH∆H ( DT , D l T ∪ DE ) + ρ • D E ( h * , h t−1 ) ( 19 )
+where
+ρ = |D E | |D l
+T |+|D E | is a coefficient related to the size of D l T and D E , D l T ∪D E ( h t ) is the error rate of the hypothesis h t on the union of D l T and D E . Proof . In the meta - learning module , the final objective is to minimize the risk loss on the meta validation set D l T ∪ D E . Thus , according to the learning theory ( Ben - David et al . , 2010 ) , the upper bound of the error rate on the test set ( i.e. , the target domain ) is :
+D T ( h t ) ≤ D l T ∪D E ( h t ) + 1 2 dH∆H ( DT , D l T ∪ DE ) + D T ( h * ) + D l T ∪D E ( h * ) ( 20 )
+Because h * is an ideal hypothesis on the target domain , D T ( h * ) = 0 holds true . Expanding D l T ∪D E ( h * ) with the definition in Eq . ( 14 ) ,
+D l T ∪D E ( h * ) = 1 |D l T | + |DE| ( x , y)∈D l T ∪D E [ 1 C * ||h * ( x ) − y||1 ] = 1 |D l T | + |DE| { ( x , y)∈D l T [ 1 C * ||h * ( x ) − y||1 ] + ( x , y)∈D E [ 1 C * ||h * ( x ) − y||1 ] } = 1 |D l T | + |DE| { |D l T | • D l T ( h * ) + |DE| • D E ( h * ) } ( 21 )
+Substituting Eq . ( 21 ) into Eq . ( 20 ) , we have :
+D T ( h t ) ≤ D l T ∪D E ( h t ) + 1 2 dH∆H ( DT , D l T ∪ DE ) + D T ( h * ) + 1 |D l T | + |DE| { |D l T | • D l T ( h * ) + |DE| • D E ( h * ) } ( 22
+)
+For any instance ( x , y ) ∈ D E , y is the pseudo label , i.e. , the prediction of hypothesis h t−1 . Thus , we have :
+D E ( h * ) = 1 |DE| ( x , y)∈D E [ 1 C * ||h * ( x ) − y||1 ] = 1 |DE| ( x , y)∈D E [ 1 C * ||h * ( x ) − h t−1 ( x)||1 ] = D E ( h * , h t−1 ) ( 23 )
+Since D l T is a subset of D T , D l T ( h * ) = 0 holds true .
+By eliminating D T ( h * ) and D l T ( h * ) in Eq . ( 22 ) , and substituting D E ( h * ) with D E ( h * , h t−1 ) , we have :
+D T ( h t ) ≤ D l T ∪D E ( h t ) + 1 2 dH∆H ( DT , D l T ∪ DE ) + |DE| |D l T | + |DE| • D E ( h * , h t−1 ) }
+The proof of Theorem 2 is completed .
+Theorem 3 . Assume there exists three datasets , D 1 , D 2 , D 3 , and let X 1 , X 2 , X 3 denotes the set of input cases in these three datasets , i.e. , X 1 =
+{ x i |(x i , y i ) ∈ D 1 } , X 2 = { x i |(x i , y i ) ∈ D 2 } , X 3 = { x i |(x i , y i ) ∈ D 3 } . If X 1 ⊆ X 2 ⊆ X 3 , then d H∆H ( D 2 , D 3 ) ≤ d H∆H ( D 1 , D 3 ) holds Proof . According to Lemma 1 , d H∆H ( D 2 , D 3 ) = 2 • |D 3 | − |D 2 | |D 3 | d H∆H ( D 1 , D 3 ) = 2 • |D 3 | − |D 1 | |D 3 | Since X 1 ⊆ X 2 , |D 1 | ≤ |D 2 | holds . Thus , d H∆H ( D 2 , D 3 ) < d H∆H ( D 1 , D 3 ) holds .
+The proof of Theorem 3 is completed .
+C Implementation Details
+The base model on the rumor detection task is BiGCN ( Bian et al . , 2020 ) , while the base model on the sentiment classification task is BERT ( Devlin et al . , 2019 ) . On the benchmark datasets , we conduct domain adaptation experiments on every domain . When one domain is taken as the target domain for evaluation , the rest domains are merged as the source domain . For example , when the " books " domain in the Amazon dataset is taken as the target domain , the " dvd " , " electronics " and " kitchen " domains are merged as the source domain .
+The unlabeled data from the target domain are used for training the model , and the labeled data from the target domain are used for testing and validating the model ( with a ratio of 7:3 ) . Notes that the TWITTER dataset does not contain extra unlabeled data , we take 70 % of the labeled data on the target domain as the unlabeled data for training , and the rest will be preserved for testing and validating . The experiments on TWITTER are conducted on " Cha . " , " Fer . " , " Ott . " , and " Syd . " 1 .
+The implementation of BiGCN to realize the rumor detection task is provided in ( Bian et al . , 2020 ) , and we follow the description in ( Bian et al . , 2020 ) to train the BiGCN model with the TWIT - TER dataset . The implementation of BERT to realize the sentiment analysis task can be found in ( Devlin et al . , 2019 ) . We download the pretrained BERT from https://huggingface . co / bert - base - uncased 2 and fit the BERT on the Amazon dataset with the instruction in ( Devlin et al . , 2019 ) . Since DANN , FixMatch , CST , MME , WIND , and BiAT are model agnostic , we implement them according to the cited references ( Ganin et al . , 2016;Sohn et al . , 2020;Liu et al . , 2021;Saito et al . , 2019;Chen et al . , 2021;Wang and Zhang , 2019 ) . For the symbols in Algorithm 1 , we set T M as 5 , T D as 5 , T G as 1 . We set η 1 and η 2 in Algorithm 1 as 5e − 4 and 5e − 3 for the BiGCN model , and as 5e − 6 and 2e − 5 for the BERT model . We set η in Eq . ( 3 ) as 5e − 5 for the BERT model , and 5e − 3 for the BiGCN model . We set γ in Eq . ( 6 ) as 0.1 for both the BERT and the BiGCN model . We conduct all experiments the GeForce RTX 3090 GPU with 24 GB memory .    
+E Extra Experiments E.1 Instance Reweighting
+To investigate the effectiveness of the metalearning module , we conduct an experiment to visualize the optimized instance weights on different pseudo instances . In detail , the experiments are conducted on the ' Cha . ' domain of the TWITTER 3 https://figshare.com/ndownloader/articles/6392078/ dataset . Since the unlabeled data in the TWITTER dataset is constructed with the labeled data in the target domain ( illustrated in § 5 ) , we are aware of the pseudo labels ' correctness . Thus , we can visualize the relevance among the instance weights , pseudo labels ' correctness , and pseudo labels ' confidence , the experiment results are shown in Fig . 3 . Fig . 3 is a violin plot in a horizontal direction , where each curve represents a distribution of the instance weights . The height of the curve represents the probability density . In each confidence interval , the yellow curve is the distribution over the correct pseudo instances while the blue curve is the distribution over the wrong pseudo instances . It should be noted that the probability density is normalized in each confidence interval . Thus , the area of the two kinds curves is equal to 1.0 in each confidence interval . From Fig . 3 , we can obtain the following observations . Firstly , the meta - learning module is effective in reducing label noise . In different confidence intervals , especially in [ 0.5 - 0.6 ] and [ 0.6 - 0.7 ] , the peak of the blue curve is smaller than 0.2 , meaning that the wrong pseudo instances are mainly allocated low instance weights . Thus , the adverse impact from the wrong pseudo instances is reduced .
+Secondly , larger instance weights are allocated to the correct pseudo instances with low confidence . In specific , large instance weights ( i.e. , > 0.5 ) mainly appears in the bottom two sub - graph , so the large instance weights are mainly allocated to the correct pseudo instances whose confidence is lower than 0.7 . Thus , the meta - learning module is also effective in mining hard pseudo examples .
+E.2 Error rates on the expansion examples
+According to Theorem 2 in § 4 , the performance of the DaMSTF is limited by the error rate of the expansion examples , i.e. , D E ( h * , h t−1 ) . By selecting the examples with the lowest prediction entropy as the expansion example , the meta constructor can reduce D E ( h * , h t−1 ) , thereby can improve the performance of the DaMSTF . In this subsection , we examine the reliability of the meta constructor , i.e. , visualizing the relationship between the prediction entropy and the prediction correctness . Specifically , we first compute and sort the prediction entropy on the " Syd . " domain . We then select the top 5 % , 10 % , 20 % , 30 % , 40 % , 50 % , 60 % , 70 % , 80 % , 90 % , 100 % of the pseudo instances to compute the error rate between the selected predictions and their ground - truth labels . We summarize the experiment results in Fig . 4 .
+E.3 Risk loss on the expansion examples
+As discussed in § 4.1 , expanding the meta validation set is challenged by the training guidance vanishment problem , since the model 's risk loss , as well as the model 's gradient , on the expansion examples is negligible . As a complementary , we design a domain adversarial learning module to perturb the model 's parameters , thereby increasing the model 's gradients on the expansion examples . Here , we provide an intuitive explanation for the necessity of introducing domain adversarial learning . Specifically , we exhibit the relationship between the predictive entropy and the risk loss , and present the changes of the risk loss before and after the parameters perturbation . The experimental settings are the same as § E.2 , and we summarize the results in Fig . 5 . From Fig . 5 , we observe that the mean risk loss decreases along with the decrease of the selection rate , and the risk loss on the examples with small predictive entropy is negligible . On the examples with the lowest 10 % predictive entropy ( i.e. , expansion examples in our setting ) , the mean risk loss is only 0.015 . Considering that the gradient is back - propagated from the risk loss , these expansion examples can not produce acceptable gradients . Accordingly , these expansion examples can not provide indicative training guidance . After perturbing the model parameters with the domain adversarial learning module , the risk loss on the expansion examples ( Selection Ratio=0.1 ) sharply increases from 0.015 to 0.288 . Thus , the domain adversarial learning module is an indispensable complement to the meta constructor .
+F Limitation
+Although our approach produces promising results on two datasets , there are certain limitations . In the future , we will continue to dig into these concerns .
+Firstly , we evaluate the DaMSTF on two classification tasks . We do not conduct experiments on other NLP tasks , such as machine translation ( Yang et al . , 2018 ) or named entity recognition ( Jia et al . , 2019 ) . Nonetheless , as text classification is a fundamental task , other NLP applications can be specified as a case of classification . For example , named entity recognition can be formulated as a wordword relation classification task .
+Secondly , the meta - learning module carries out extra computation overhead . As the bi - level hyperparameters optimization involves a second - order derivate on the model 's parameters , their computation overhead is quadratic to the model 's parameters . In DaMSTF , we use the approximation techniques in WIND to compute the derivate , which is linear to the model 's parameters . In the future , we
+Acknowledgements
+
+w
+i
+l
+l
+ 
+i
+n
+v
+e
+s
+t
+i
+g
+a
+t
+e
+ 
+o
+t
+h
+e
+r
+ 
+t
+e
+c
+h
+n
+i
+q
+u
+e
+s
+ 
+t
+o
+ 
+a
+c
+c
+e
+l
+e
+r
+a
+t
+e
+ 
+t
+h
+e
+ 
+D
+a
+M
+S
+T
+F
+.
+G Ethical considerations and social impacts
+This paper involves the use of existing artifact(s ) , including two benchmark datasets and the pretrained BERT model . Their intention for providing the artifacts is to inspire the following research , our use is consistent with their intended use . Rumor , as well as rumor detection , is very sensitive for the social order . In this paper , we conduct experiments on a rumor detection task and prepare to release the code in the future . Since the model 's prediction is not that reliable , it may lead to social harm when the model 's error prediction is used with malicious intentions . For example , people may use the model 's error prediction as support evidence , so as to deny a correct claim or to approve a rumor claim . Here , we seriously declare that the model 's prediction can not be taken as the support evidence . In the released code , we will constrain the input format of the model , making unprofessional individuals unable to directly use the model . B2 . Did you discuss the license or terms for use and / or distribution of any artifacts ? Left blank .
+B3 . Did you discuss if your use of existing artifact(s ) was consistent with their intended use , provided that it was specified ? For the artifacts you create , do you specify intended use and whether that is compatible with the original access conditions ( in particular , derivatives of data accessed for research purposes should not be used outside of research contexts ) ?
+Left blank .
+B4 . Did you discuss the steps taken to check whether the data that was collected / used contains any information that names or uniquely identifies individual people or offensive content , and the steps taken to protect / anonymize it ? Left blank .
+B5 . Did you provide documentation of the artifacts , e.g. , coverage of domains , languages , and linguistic phenomena , demographic groups represented , etc . ? Left blank .
+B6 . Did you report relevant statistics like the number of examples , details of train / test / dev splits , etc . for the data that you used / created ? Even for commonly - used benchmark datasets , include the number of examples in train / validation / test splits , as these provide necessary context for a reader to understand experimental results . For example , small differences in accuracy on large test sets may be significant , while on small test sets they may not be .
+Left blank .
+C Did you run computational experiments ?
+Left blank .
+C1 . Did you report the number of parameters in the models used , the total computational budget ( e.g. , GPU hours ) , and computing infrastructure used ? Left blank .

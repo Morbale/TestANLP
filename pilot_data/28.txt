@@ -1,0 +1,521 @@
+Static Embeddings as Efficient Knowledge Bases ?
+Recent research investigates factual knowledge stored in large pretrained language models ( PLMs ) . Instead of structural knowledge base ( KB ) queries , masked sentences such as " Paris is the capital of [ MASK ] " are used as probes . The good performance on this analysis task has been interpreted as PLMs becoming potential repositories of factual knowledge . In experiments across ten linguistically diverse languages , we study knowledge contained in static embeddings . We show that , when restricting the output space to a candidate set , simple nearest neighbor matching using static embeddings performs better than PLMs . E.g. , static embeddings perform 1.6 % points better than BERT while just using 0.3 % of energy for training . One important factor in their good comparative performance is that static embeddings are standardly learned for a large vocabulary . In contrast , BERT exploits its more sophisticated , but expensive ability to compose meaningful representations from a much smaller subword vocabulary .
+Introduction
+Pretrained language models ( PLMs ) ( Peters et al . , 2018;Howard and Ruder , 2018;Devlin et al . , 2019 ) can be finetuned to a variety of natural language processing ( NLP ) tasks and then generally yield high performance . Increasingly , these models and their generative variants ( e.g. , GPT , Brown et al . , 2020 ) are used to solve tasks by simple text generation , without any finetuning . This motivated research on how much knowledge is contained in PLMs : Petroni et al . ( 2019 ) used models pretrained with a masked language objective to answer clozestyle templates such as :
+( Ex1 ) Paris is the capital of [ MASK ] .
+Using this methodology , Petroni et al . ( 2019 ) showed that PLMs capture some knowledge implicitly . This has been interpreted as suggesting * Equal contribution -random order .
+Model
+Vocabulary   BERT and mBERT use their subword vocabularies .
+For fastText , we use BERT / mBERT 's vocabularies and newly trained wordpiece vocabularies on Wikipedia .
+that PLMs are promising as repositories of factual knowledge . In this paper , we present evidence that simple static embeddings like fastText perform as well as PLMs in the context of answering knowledge base ( KB ) queries . Answering KB queries can be decomposed into two subproblems , typing and ranking . Typing refers to the problem of predicting the correct type of the answer entity ; e.g. , " country " is the correct type for [ MASK ] in ( Ex1 ) , a task that PLMs seem to be good at . Ranking consists of finding the entity of the correct type that is the best fit ( " France " in ( Ex1 ) ) . By restricting the output space to the correct type we disentangle the two subproblems and only evaluate ranking . We do this for three reasons . ( i ) Ranking is the knowledgeintensive step and thus the key research question .
+( ii ) Typed querying reduces PLMs ' dependency on the template . ( iii ) It allows a direct comparison between static word embeddings and PLMs . Prior work has adopted a similar approach ( Xiong et al . , 2020 ; .
+For a PLM like BERT , ranking amounts to finding the entity whose embedding is most similar to the output embedding for [ MASK ] . For static embeddings , we rank entities ( e.g. , entities of type country ) with respect to similarity to the query entity ( e.g. , " Paris " in ( Ex1 ) ) . In experiments across ten linguistically diverse languages , we show that this simple nearest neighbor matching with fastText embeddings performs comparably to or even better than BERT . For example for English , fastText embeddings perform 1.6 % points better than BERT ( 41.2 % vs. 39.6 % , see Table 1 , column " LAMA " ) . This suggests that BERT 's core mechanism for answering factual queries is not more effective than simple nearest neighbor matching using fastText embeddings .
+We believe this means that claims that PLMs are KBs have to be treated with caution . Advantages of BERT are that it composes meaningful representations from a small subword vocabulary and handles typing implicitly ( Petroni et al . , 2019 ) . In contrast , answering queries without restricting the answer space to a list of candidates is hard to achieve with static word embeddings . On the other hand , static embeddings are cheap to obtain , even for large vocabulary sizes . This has important implications for green NLP . PLMs require tremendous computational resources , whereas static embeddings have only 0.3 % of the carbon footprint of BERT ( see Table 4 ) . This argues for proponents of resourcehungry deep learning models to try harder to find cheap " green " baselines or to combine the best of both worlds ( cf . Poerner et al . , 2020 ) .
+In summary , our contributions are :
+i )
+We propose an experimental setup that allows a direct comparison between PLMs and static word embeddings . We find that static word embeddings show performance similar to BERT on the modified LAMA analysis task across ten languages .
+ii ) We provide evidence that there is a trade - off between composing meaningful representations from subwords and increasing the vocabulary size . Storing information through composition in a network seems to be more expensive and challenging than simply increasing the number of atomic representations .
+iii ) Our findings may point to a general problem : baselines that are simpler and " greener " are not given enough attention in deep learning .
+Code and embeddings are available online .  
+Data
+We follow the LAMA setup introduced by Petroni et al . ( 2019 ) . More specifically , we use data from TREx ( Elsahar et al . , 2018 ) . TREx consists of triples of the form ( object , relation , subject ) . The underlying idea of LAMA is to query knowledge from PLMs using templates without any finetuning : the triple ( Paris , capital - of , France ) is queried with the template " Paris is the capital of [ MASK ] . " TREx covers 41 relations . Templates for each relation were manually created by Petroni et al . ( 2019 ) . LAMA has been found to contain many " easy - toguess " triples ; e.g. , it is easy to guess that a person with an Italian sounding name is Italian . LAMA - UHN is a subset of triples that are " hard - to - guess " created by Poerner et al . ( 2020 ) .
+Beyond English , we run experiments on nine additional languages using mLAMA , a multilingual version of TREx . For an overview of languages and language families see Table 2 . For training static embeddings , we use Wikipedia dumps from October 2020 .
+Methods
+We describe our proposed setup , which allows to compare PLMs with static embeddings .
+PLMs
+We use the following two PLMs : ( i ) BERT for English ( BERT - base - cased , Devlin et al . ( 2019 ) ) , ( ii ) mBERT for all ten languages ( the multilingual version BERT - base - multilingual - cased ) . Petroni et al . ( 2019 ) use templates like " Paris is the capital of [ MASK ] " and give arg max w∈V p(w|t ) as answer where V is the vocabulary of the PLM and p(w|t ) is the probability that word w gets predicted in the template t.
+We follow the same setup as ( Kassner et al . ,   120k 27.9 25.2 31.0 24.2 28.3 22.4 28.2 28.0 33.2   250k 30.1 30.3 34.2 28.8 32.8 24.9 30.5 31.6 35.6   500k 31.7 32.5 36.6 30.9 33.7 27.0 31.5 31.8 36.1   1000k 31.3 33.6 36.5 31.8 33.9 27.2 29.8 30.5 36.6    Table 3 : p1 ( Strubell et al . , 2019 ) . We use our server 's peak power consumption . See appendix for details .
+2021 ) and use typed querying : for each relation , we create a candidate set C and then predict arg max c∈C p(c|t ) . For most templates , there is only one valid entity type , e.g. , country for ( Ex1 ) . We choose as C the set of objects across all triples for a single relation . The candidate set could also be obtained from an entity typing system ( e.g. , Yaghoobzadeh et al . , 2018 ) , but this is beyond the scope of this paper . Variants of typed prediction have been used before ( Xiong et al . , 2020 ) . We accommodate multi - token objects , i.e. , objects that are not contained in the vocabulary , by including multiple [ MASK ] tokens in the templates . We then compute an object 's score as the average of the log probabilities for its individual tokens . Note that we do not perform any finetuning .
+Vocabulary
+The vocabulary V of the wordpiece tokenizer is of central importance for static embeddings as well as PLMs . BERT models come with fixed vocabularies . It would be prohibitive to retrain the models with a new vocabulary . It would also be too expensive to increase the vocabulary by a large factor : the embedding matrix is responsible for the majority of the memory consumption of these models .
+In contrast , increasing the vocabulary size is cheap for static embeddings . We thus experiment with different vocabulary sizes for static embeddings . To this end , we train new vocabularies for each language on Wikipedia using the wordpiece tokenizer ( Schuster and Nakajima , 2012 ) .
+Static Embeddings
+Using either newly trained vocabularies or existing BERT vocabularies , we tokenize Wikipedia . We then train fastText embeddings ( Bojanowski et al . , 2017 ) with default parameters ( http://fasttext.cc ) .
+We consider the same candidate set C as for PLMs .
+Let c ∈ C be a candidate that gets split into tokens t 1 , . . . , t k by the wordpiece tokenizer . We then assign to c the embedding vector
+e c = 1 k k i=1 e t i
+where e t i is the fastText vector for token t i . We compute the representations for a query q analogously . For a query q ( the subject of a triple ) , we then compute the prediction as :
+arg max c∈C cosine - sim(ē q , ē c ) ,
+i.e. , we perform simple nearest neighbor matching .
+Note that the static embedding method does not get any signal about the relation . The method 's only input is the subject of a triple , and we leave incorporating a relation vector to future work .
+Evaluation Metric
+We compute precision at one for each relation , i.e. , 1/|T | t∈T 1{t object = t object } where T is the set of all triples andt object the object predicted using contextualized / static embeddings . Note that T is different for each language . Our final measure ( p1 ) is then the precision at one ( macro-)averaged over relations . As a consistency check we provide an Oracle baseline : it always predicts the most frequent object across triples based on the gold candidate sets .
+BERT vs. fastText
+Results for English are in Table 1 . The table shows that when increasing the vocabulary size , static embeddings and BERT exhibit similar performance on LAMA . The Oracle baseline is mostly outperformed . Only for small vocabulary sizes , fast - Text is worse . Performance of fastText increases with larger vocabulary sizes and with a vocabulary size of 1000k we observe a 1.6 % absolute performance increase of fastText embeddings compared to BERT ( 41.2 % vs. 39.6 % ) . The performance gap between fastText and BERT increases to 2.7 % points on LAMA - UHN , indicating that fastText is less vulnerable to misleading clues about the subject .
+Only providing results on English can be prone to unexpected biases . Thus , we verify our results for nine additional languages . Results are shown in Table 3 and the conclusions are similar : for large enough vocabularies , static embeddings consistently have better performance . For languages outside the Indo - European family , the performance gap between mBERT and fastText is much larger ( e.g. , 31.7 vs. 17.2 for Arabic ) and mBERT is sometimes worse than the Oracle .
+Our fastText method is quite primitive : it is a type - restricted search for entities similar to what is most prominent in the context ( whose central element is the query entity , e.g. , " Paris " in ( Ex1 ) ) . The fact that fastText outperforms BERT raises the question : Does BERT simply use associations between entities ( like fastText ) or has it captured factual knowledge beyond this ?
+BERT vs fastText : Diversity of Predictions
+The entropy of the distribution of predicted objects is 6.5 for BERT vs. 7.3 for fastText . So BERT 's predictions are less diverse . Of 151 possible objects on average , BERT predicts ( on average ) 85 , fast - Text 119 . For a given relation , BERT 's prediction tend to be dominated by one object , which is often the most frequent correct object -possibly because these objects are frequent in Wikipedia / Wikidata . When filtering out triples whose correct answer is the most frequent object , BERT 's performance drops to 35.7 whereas fastText 's increases to 42.5 . See Table 7 in the appendix for full results on diversity . We leave investigating why BERT has these narrower object preferences for future work .  
+Contextualization in BERT
+BERT 's attention mechanism should be able to handle long subjects -in contrast to fastText , for which we use simple averaging . Figure 1 shows that fast - Text 's performance indeed drops when the query gets tokenized into multiple tokens . In contrast , BERT 's performance remains stable . We conclude that token averaging harms fastText 's performance and that the attention mechanism in BERT composes meaningful representations from subwords . We try to induce static embeddings from BERT by feeding object and subject surface forms to BERT without any context and then averaging the hidden representations for each layer . Figure 2 analyzes whether a nearest neighbor matching over this static embedding space extracted from BERT 's representations is effective in extracting knowledge from it . We find that performance on LAMA is significantly lower across all hidden layers with the first two layers performing best . That simple averaging does not work as well as contextualization indicates that BERT is great at composing meaningful representations through attention . In future work , it would be interesting to extract better static representations from BERT , for example by extracting the representations of entities in real sentences .   . " and a candidate set . The solid lines reflect performance of nearest neighbor matching with cosine similarity when inducing a static embedding space from the representations at these layers . This shows that extracting high quality static embeddings is not trivial , and BERT 's contextualization is essential for getting good performance .
+Resource Consumption
+carbon emissions compared to BERT . In a recent study , Zhang et al . ( 2020 ) showed that capturing factual knowledge inside PLMs is an especially resource hungry task . These big differences demonstrate that fastText , in addition to performing better than BERT , is the environmentally better model to " encode knowledge " of Wikipedia in an unsupervised fashion . This calls into question the use of large PLMs as knowledge bases , particularly in light of the recent surge of knowledge augmented LMs , e.g. , Guu et al . , 2020 ) .
+5 Related Work Petroni et al . ( 2019 ) first asked : can PLMs function as KBs ? Subsequent analysis focused on different aspects , such as negation Ettinger , 2020 ) , paraphrases ( Elazar et al . , 2021 ) , easy to guess names ( Poerner et al . , 2020 ) , finding alternatives to a cloze - style approach ( Bouraoui et al . , 2020;Heinzerling and Inui , 2020;Jiang et al . , 2020 ) or analyzing different model sizes ( Roberts et al . , 2020 ) .
+There is a recent surge of work that tries to improve PLMs ' ability to harvest factual knowledge : In contrast , we provide evidence that BERT 's ability to answer factual queries is not more effective than capturing " knowledge " with simple traditional static embeddings . This suggests that learning associations between entities and typerestricted similarity search over these associations may be at the core of BERT 's ability to answer cloze - style KB queries , a new insight into BERT 's working mechanism .
+Conclusion
+We have shown that , when restricting cloze - style questions to a candidate set , static word embeddings outperform BERT . To explain this puzzling superiority of a much simpler model , we put forward a new characterization of factual knowledge learned by BERT : BERT seems to be able to complete cloze - style queries based on similarity assessments on a type - restricted vocabulary much like a nearest neighbor search for static embeddings .
+However , BERT may still be the better model for the task : we assume perfect typing ( for BERT and fastText ) and only evaluate ranking . Typing is much harder with static embeddings and BERT has been shown to perform well at guessing the expected entity type based on a template . BERT also works well with small vocabularies , storing most of its " knowledge " in the parameterization of subword composition . Our results suggest that increasing the vocabulary size and computing more atomic entity representations with fastText is a cheap and environmentally friendly method of storing knowledge . In contrast , learning high quality composition of smaller units requires many more resources .
+fastText is a simple cheap baseline that outperforms BERT on LAMA , but was not considered in the original research . This may be an example of a general problem : " green " baselines are often ignored , but should be considered when evaluating resource - hungry deep learning models . A promising way forward would be to combine the best of both worlds , e.g. , by building on work that incorporates large vocabularies into PLMs after pretraining .
+A Resource Consumption
+We follow Strubell et al . ( 2019 ) for our computation . The measured peak energy consumption of our CPU - server was 618W. Considering the power usage effectiveness the required kWh are given by p t = 1.58 • t • 618/1000 . Training the English fast - Text on Wikipedia took around 5 hours . Training all languages took 20 hours . The estimated CO 2 e can then be computed by CO 2 e = 0.954 • p t
+B Reproducibility Information
+For computation we use a CPU server with 96 CPU cores ( Intel(R ) Xeon(R ) Platinum 8160 ) and 1024 GB RAM . For BERT and mBERT inference we use a single GeForce GTX 1080Ti GPU .
+Getting the object predictions for BERT and fast - Text is fast and takes a negligible amount of time . Training fastText embeddings takes between 1 to 5 hours depending on Wikipedia size .
+BERT has around 110 M parameters , mBERT around 178M. The fastText embeddings have O(nd ) parameters where n is the vocabulary size and d is the embedding dimension . We use d = 300 . Thus , for most vocabulary sizes , fastText has significantly more parameters than the BERT models . But overall they are cheaper to train .
+We did not perform any hyperparameter tuning . Table 6 gives an overview on third party software . Table 5 gives an overview on the number of triples in the dataset . Note that no training set is required , as all methods are completely unsupervised .    Table 7 : Analysis of the diversity of predictions . p1 - mf is the p1 when excluding triples whose correct answer is the most frequent object . entropy is the entropy of the distribution of predicted objects . # pred . denotes the average number of distinct objects predicted by the model across relations . The average number of unique objects in the candidate set across relations is 151 . fastText has more diverse predictions , as the entropy is higher and the set of predicted objects is on average much larger .
+C Examples
+D Additional Results
+In this section we show additional results . Table 8 shows the same as Table 1 but with precision at five . Analogously Table 9 . Table 10 shows the same as Table 3 but for LAMA - UHN . The trends and key insights are unchanged . Table 7 analyses the diversity of predictions by the different models .      
+
+A
+c
+k
+n
+o
+w
+l
+e
+d
+g
+e
+m
+e
+n
+t
+s
+.
+ 
+T
+h
+i
+s
+ 
+w
+o
+r
+k
+ 
+w
+a
+s
+ 
+s
+u
+p
+p
+o
+r
+t
+e
+d
+ 
+b
+y
+ 
+t
+h
+e
+ 
+E
+u
+r
+o
+p
+e
+a
+n
+ 
+R
+e
+s
+e
+a
+r
+c
+h
+ 
+C
+o
+u
+n
+c
+i
+l
+ 
+(
+#
+ 
+7
+4
+0
+5
+1
+6
+)
+ 
+a
+n
+d
+ 
+t
+h
+e
+ 
+G
+e
+r
+m
+a
+n
+ 
+F
+e
+d
+e
+r
+a
+l
+ 
+M
+i
+n
+i
+s
+t
+r
+y
+ 
+o
+f
+ 
+E
+d
+u
+c
+a
+t
+i
+o
+n
+ 
+a
+n
+d
+ 
+R
+e
+s
+e
+a
+r
+c
+h
+ 
+(
+B
+M
+B
+F
+)
+ 
+u
+n
+d
+e
+r
+ 
+G
+r
+a
+n
+t
+ 
+N
+o
+.
+ 
+0
+1
+I
+S
+1
+8
+0
+3
+6
+A
+.
+ 
+T
+h
+e
+ 
+a
+u
+t
+h
+o
+r
+s
+ 
+o
+f
+ 
+t
+h
+i
+s
+ 
+w
+o
+r
+k
+ 
+t
+a
+k
+e
+ 
+f
+u
+l
+l
+ 
+r
+e
+s
+p
+o
+n
+s
+i
+b
+i
+l
+i
+t
+y
+ 
+f
+o
+r
+ 
+i
+t
+s
+ 
+c
+o
+n
+t
+e
+n
+t
+.
+ 
+T
+h
+e
+ 
+f
+i
+r
+s
+t
+ 
+a
+u
+t
+h
+o
+r
+ 
+w
+a
+s
+ 
+s
+u
+p
+p
+o
+r
+t
+e
+d
+ 
+b
+y
+ 
+t
+h
+e
+ 
+B
+a
+v
+a
+r
+i
+a
+n
+ 
+r
+e
+s
+e
+a
+r
+c
+h
+ 
+i
+n
+s
+t
+i
+t
+u
+t
+e
+ 
+f
+o
+r
+ 
+d
+i
+g
+i
+t
+a
+l
+ 
+t
+r
+a
+n
+s
+f
+o
+r
+m
+a
+t
+i
+o
+n
+ 
+(
+b
+i
+d
+t
+)
+ 
+t
+h
+r
+o
+u
+g
+h
+ 
+t
+h
+e
+i
+r
+ 
+f
+e
+l
+l
+o
+w
+s
+h
+i
+p
+ 
+p
+r
+o
+g
+r
+a
+m
+.
+ 
+W
+e
+ 
+t
+h
+a
+n
+k
+ 
+Y
+a
+n
+a
+i
+ 
+E
+l
+a
+z
+a
+r
+ 
+a
+n
+d
+ 
+t
+h
+e
+ 
+a
+n
+o
+n
+y
+m
+o
+u
+s
+ 
+r
+e
+v
+i
+e
+w
+e
+r
+s
+ 
+f
+o
+r
+ 
+v
+a
+l
+u
+a
+b
+l
+e
+ 
+c
+o
+m
+m
+e
+n
+t
+s
+.
