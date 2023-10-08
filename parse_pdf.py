@@ -3,48 +3,47 @@ import os
 import scipdf
 import json
 import spacy
+import numpy as np
+from bs4 import BeautifulSoup
+import requests
 
-# def tokenize_text(input_text):
-#     nlp = spacy.load("en_core_web_lg")
-#     doc = nlp(input_text)
-#     tokens = [token.text for token in doc]    
-#     return tokens
+def crawl_acl(output_file, venue, year, count, volume = None):
+    page_url = "https://aclanthology.org/events/" + venue + "-" + str(year)
+    if not volume:
+        if venue == 'acl':
+            conf_id = str(year)+venue+'-long'
+        else:
+            conf_id = str(year)+venue+'-main'
+    else:
+        conf_id = str(year)+volume
+        
+    response = requests.get(page_url)
+    if response.status_code != 200:
+        raise Exception(f"Check if the page exists: {page_url}")
+    else:
+        html = response.text
 
-# def tokenize_file(input_file_path, output_file_path):
-#     print('start tokenizing')
-#     with open(input_file_path, 'r', encoding='utf-8') as input_file, \
-#          open(output_file_path, 'w', encoding='utf-8') as output_file:
-#         for line in input_file:
-#             line = line.strip()  # Remove leading/trailing whitespace
-#             if line:
-#                 tokens = tokenize_text(line)
-#                 # Write the tokenized sentence to the output file
-#                 output_file.write(" ".join(tokens) + "\n")
+    soup = BeautifulSoup(html, 'html.parser')
+    main_papers = soup.find('div', id = conf_id).find_all('p', class_ = "d-sm-flex")
 
-# def parse_pdfjson(directory_name, idx, pdfjson, nlp):
-#     filename = f"{directory_name}/{idx}-orig.txt"
-#     print(f"Start parsing file {filename}")
-#     data = json.loads(pdfjson)
-#     title = data['title']
-#     abstract = data['abstract']
-#     with open(filename, 'w', encoding='utf-8') as output_file:
-#                 output_file.write(f"{title}\n")
-#                 output_file.write(f"{abstract}\n")
-#     for section in data['sections']:
-#          heading = section['heading']
-#          # get text from section['text'] which is list, and write to file on each line
-#          text = "\n".join(section['text'])
-#          with open(filename, 'a', encoding='utf-8') as output_file:
-#                 if heading:
-#                     output_file.write(f"{heading}\n")
-#                 if text:
-#                     output_file.write(f"{text}\n")
-#     print(f"File {filename} parsed to text file, start tokenizing")
-    # # outfile = f"{directory_name}/{idx}.txt"
-    # outfile = f"{directory_name}/testifworks-tokenized.txt"
-    # tokenize_file(filename, outfile)
-    # os.remove(filename)
-    # print(f"File {filename} tokenized to {outfile}")
+    paper_list = []
+    for paper_p in main_papers:
+        pdf_url = paper_p.contents[0].contents[0]['href']
+        # paper_span = paper_p.contents[-1]
+        # assert paper_span.name == 'span'
+        # paper_a = paper_span.strong.a
+        # title = paper_a.get_text()
+        # url = "https://aclanthology.org" + paper_a['href']
+        paper_list.append(pdf_url)
+    
+    # select count number of papers randomly from paper_list
+    paper_list = np.random.choice(paper_list, count, replace = False)
+    
+    # write txt file line by line in paper_lst
+    with open(output_file, 'w') as f:
+        for paper in paper_list:
+            f.write(f"{paper}\n")
+
 
 
 def parse_pdfjson(directory_name, idx, pdfjson, nlp):
