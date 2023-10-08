@@ -80,9 +80,6 @@ def parse_pdfjson(directory_name, idx, pdfjson):
         for row in df['tokens']:
             output_file.write(row + "\n")
 
-                
-    
-
 
 def url_to_dict(directory_name, idx, url):
     pdfdict = scipdf.parse_pdf_to_dict(url, as_list=True)
