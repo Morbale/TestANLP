@@ -8,7 +8,8 @@ pip install -r requirements.txt
 ```
 
 ## Scraping
-Uses [SciPDF](https://github.com/titipata/scipdf_parser) parser to parse the pdf. 
+Uses [SciPDF](https://github.com/titipata/scipdf_parser) parser to parse the pdf. PDF crawler was built referring to [ACL-Anthology-Crawler](https://github.com/srhthu/ACL-Anthology-Crawler/tree/main). 
+
 Open new terminal window and run following:
 ```bash
 conda activate nlpfromscratch
