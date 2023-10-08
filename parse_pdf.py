@@ -6,6 +6,8 @@ import spacy
 import numpy as np
 from bs4 import BeautifulSoup
 import requests
+from tqdm import tqdm
+import pandas as pd
 
 def crawl_acl(args):
     output_file = args.urlpath
@@ -51,9 +53,16 @@ def crawl_acl(args):
             f.write(f"{paper}\n")
     return output_file
 
+nlp = spacy.load("en_core_web_lg")
+
+def tokenize_text(input_text, pbar):
+    doc = nlp(input_text)
+    tokens = [token.text for token in doc]
+    pbar.update(1)
+    return ' '.join(tokens)
 
 
-def parse_pdfjson(directory_name, idx, pdfjson, nlp):
+def parse_pdfjson(directory_name, idx, pdfjson):
     lines = []
     data = json.loads(pdfjson)
     lines.append(data['title'])
@@ -64,18 +73,22 @@ def parse_pdfjson(directory_name, idx, pdfjson, nlp):
             lines.append(line)
     
     outfile = f"{directory_name}/{idx}.txt"
+    df = pd.DataFrame({"text":lines})
+    with tqdm(total=len(df), desc="Tokenizing", unit="texts") as pbar:
+        df["tokens"] = df["text"].apply(lambda x: tokenize_text(x, pbar))
     with open(outfile, 'w', encoding='utf-8') as output_file:
-        for doc in nlp.pipe(lines, n_process=-1, batch_size=4000):
-            tokens = [token.text for token in doc]
-            output_file.write(" ".join(tokens) + "\n")
+        for row in df['tokens']:
+            output_file.write(row + "\n")
+
+                
     
 
 
-def url_to_dict(directory_name, idx, url, nlp):
+def url_to_dict(directory_name, idx, url):
     pdfdict = scipdf.parse_pdf_to_dict(url, as_list=True)
     print(f"URL {idx} parsed to dictionary")
     pdfjson = json.dumps(pdfdict)
-    parse_pdfjson(directory_name, idx, pdfjson, nlp)
+    parse_pdfjson(directory_name, idx, pdfjson)
 
 
 def process_urls(args):
@@ -83,7 +96,7 @@ def process_urls(args):
         # create directory to store input files
         filepath = args.urlpath
         directory_name = os.path.splitext(os.path.basename(filepath))[0]
-        nlp = spacy.load("en_core_web_lg")
+        
         if not os.path.exists(directory_name):
             os.makedirs(directory_name)
         # load urls from file
@@ -93,7 +106,7 @@ def process_urls(args):
                 url = url.strip()
                 if not url:
                     continue
-                url_to_dict(directory_name, str(idx), url, nlp)
+                url_to_dict(directory_name, str(idx), url)
         print(f"Finished parsing {len(urls)} urls")
     except FileNotFoundError:
         print(f"Crawl to create file first: {filepath}")
