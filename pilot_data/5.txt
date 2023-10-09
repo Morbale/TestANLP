@@ -94,5 +94,5 @@ The domain of the words in CogALexV and EVALution were annotated by humans . We 
 C Mask Verbalizer
 In Table 7 it is shown the used tokens to verbalize the mask token in templates TM1 , TM2 and TM3 .
 D Complete Results
-We present the results for BERT and RoBERTa ( large and base ) models . Table 8 contains the mean of the weighted by the support labels of precision of the 5 runs , recall and F1 - score . The greatest value for each measure ( column ) is underlined . A value is boldened if there is no statistical evidence to be different from the greatest one performing a Welch 's t - test for the mean values . A similar rationale is applied for Table 9 , with the complete results for CogALexV dataset and Table 10        B2 . Did you discuss the license or terms for use and / or distribution of any artifacts ?
+We present the results for BERT and RoBERTa ( large and base ) models . Table 8 contains the mean of the weighted by the support labels of precision of the 5 runs , recall and F1 - score . The greatest value for each measure ( column ) is underlined . A value is boldened if there is no statistical evidence to be different from the greatest one performing a Welch 's t - test for the mean values . A similar rationale is applied for Table 9 , with the complete results for CogALexV dataset and Table 10
 CogALexV EVALution
