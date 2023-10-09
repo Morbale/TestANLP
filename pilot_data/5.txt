@@ -96,12 +96,3 @@ In Table 7 it is shown the used tokens to verbalize the mask token in templates 
 D Complete Results
 We present the results for BERT and RoBERTa ( large and base ) models . Table 8 contains the mean of the weighted by the support labels of precision of the 5 runs , recall and F1 - score . The greatest value for each measure ( column ) is underlined . A value is boldened if there is no statistical evidence to be different from the greatest one performing a Welch 's t - test for the mean values . A similar rationale is applied for Table 9 , with the complete results for CogALexV dataset and Table 10        B2 . Did you discuss the license or terms for use and / or distribution of any artifacts ?
 CogALexV EVALution
-S4 . Experimental setup .
-B3 . Did you discuss if your use of existing artifact(s ) was consistent with their intended use , provided that it was specified ? For the artifacts you create , do you specify intended use and whether that is compatible with the original access conditions ( in particular , derivatives of data accessed for research purposes should not be used outside of research contexts ) ? S1,2 and 4 . Introduction , Related work and Experimental setup .
-B4 . Did you discuss the steps taken to check whether the data that was collected / used contains any information that names or uniquely identifies individual people or offensive content , and the steps taken to protect / anonymize it ? Not applicable . Left blank .
-B5 . Did you provide documentation of the artifacts , e.g. , coverage of domains , languages , and linguistic phenomena , demographic groups represented , etc . ? S4 and Appendix A.
-B6 . Did you report relevant statistics like the number of examples , details of train / test / dev splits , etc . for the data that you used / created ? Even for commonly - used benchmark datasets , include the number of examples in train / validation / test splits , as these provide necessary context for a reader to understand experimental results . For example , small differences in accuracy on large test sets may be significant , while on small test sets they may not be .
-Results and appendix .
-C Did you run computational experiments ?
-S4 . Experimental setup .
-C1 . Did you report the number of parameters in the models used , the total computational budget ( e.g. , GPU hours ) , and computing infrastructure used ? S4 . Experimental setup .

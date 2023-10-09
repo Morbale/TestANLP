@@ -88,11 +88,4 @@ Appendix C : Inter - Annotator Agreement
 The annotators made a binary decision on each distractor , determining whether the distractor is valid . We compute pairwise agreement using Cohen kappa 's ( Cohen , 1960 ) and present the results in Table C3 . Our average pairwise agreement values are shown in the last column . These values are better than those obtained by Yeung et al . ( 2019 ) , although their annotation task included 3 classes . Cohen 's kappa results indicate strong agreement in all cases . The numbers in the table indicate excellent agreement ( Landis and Koch , 1977 ) .
 Appendix D : Additional Results
 Manual evaluation of the difficulty of the automatic distractors by pivot group Table D4 shows the number and percentage of candidate distractors that are judged as semantically similar to the target word and the carrier sentence .
-Varying the number of generated hypotheses by translation direction Table D5   B3 . Did you discuss if your use of existing artifact(s ) was consistent with their intended use , provided that it was specified ? For the artifacts you create , do you specify intended use and whether that is compatible with the original access conditions ( in particular , derivatives of data accessed for research purposes should not be used outside of research contexts ) ? Left blank .
-B4 . Did you discuss the steps taken to check whether the data that was collected / used contains any information that names or uniquely identifies individual people or offensive content , and the steps taken to protect / anonymize it ? Left blank .
-B5 . Did you provide documentation of the artifacts , e.g. , coverage of domains , languages , and linguistic phenomena , demographic groups represented , etc . ? Left blank .
-B6 . Did you report relevant statistics like the number of examples , details of train / test / dev splits , etc . for the data that you used / created ? Even for commonly - used benchmark datasets , include the number of examples in train / validation / test splits , as these provide necessary context for a reader to understand experimental results . For example , small differences in accuracy on large test sets may be significant , while on small test sets they may not be .
-Left blank .
-C Did you run computational experiments ?
-Left blank .
-C1 . Did you report the number of parameters in the models used , the total computational budget ( e.g. , GPU hours ) , and computing infrastructure used ? Left blank .
+Varying the number of generated hypotheses by translation direction Table D5   
