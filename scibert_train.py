@@ -59,13 +59,13 @@ def evaluate(args, test):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("optimizer", type=str, help='Adam or any other', default="Adam")
-    parser.add_argument("loss", type=str, help='Loss function to use', default="CrossEntropy")
-    parser.add_argument("epochs", type=int, help='Number of Epochs', default=10)
-    parser.add_argument("lr", type=float, help='Learning Rate', default=1e-3)
-    parser.add_argument("output_path", type=str, help='Path where model weights should be stored',
+    parser.add_argument("--optimizer", type=str, help='Adam or any other', default="Adam")
+    parser.add_argument("--loss", type=str, help='Loss function to use', default="CrossEntropy")
+    parser.add_argument("--epochs", type=int, help='Number of Epochs', default=10)
+    parser.add_argument("--lr", type=float, help='Learning Rate', default=1e-3)
+    parser.add_argument("--output_path", type=str, help='Path where model weights should be stored',
                         default="finetuned/")
-    parser.add_argument("type", type=str, help='Freeze/Finetune', default="finetune")
+    parser.add_argument("--type", type=str, help='Freeze/Finetune', default="finetune")
     args = parser.parse_args()
     #
     ipt = [{'input_ids': tensor([[100, 864, 19676, 3832, 100, 173, 14203, 100]]),
