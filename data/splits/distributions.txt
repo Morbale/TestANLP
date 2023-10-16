@@ -1,0 +1,68 @@
+Train:
+{'MethodName': 0.877326094409505,
+ 'HyperparameterName': 0.18771743467826693,
+ 'HyperparameterValue': 0.16804644601437668,
+ 'MetricName': 0.42995160936788684,
+ 'MetricValue': 0.1894035194208861,
+ 'TaskName': 0.4091565642089171,
+ 'DatasetName': 0.3197940728501015,
+ 'O': 97.41860425905006}
+
+Val:
+{'MethodName': 0.7881462799495587,
+ 'HyperparameterName': 0.20266618627274366,
+ 'HyperparameterValue': 0.1666366420464781,
+ 'MetricName': 0.4548729958566024,
+ 'MetricValue': 0.19816249324446045,
+ 'TaskName': 0.4278508376869033,
+ 'DatasetName': 0.3017474328949739,
+ 'O': 97.45991713204828}
+
+Test:
+{'MethodName': 0.9839158954083925,
+ 'HyperparameterName': 0.23362386557642195,
+ 'HyperparameterValue': 0.13478299937101265,
+ 'MetricName': 0.4133345314044389,
+ 'MetricValue': 0.21565279899362025,
+ 'TaskName': 0.40884176475873846,
+ 'DatasetName': 0.2830442986791266,
+ 'O': 97.32680384580826}
+
+
+
+ 
+
+---Code
+import os, glob
+import argparse
+import json
+
+
+
+def count(filename):
+    cntdic = {'MethodName':0, 
+          'HyperparameterName':0, 
+          'HyperparameterValue':0, 
+          'MetricName': 0, 
+          'MetricValue': 0, 
+          'TaskName':0, 
+          'DatasetName':0,
+          'O':0}
+    with open(filename, 'r') as input_file:
+        for line in input_file:
+                    if not line.strip():
+                        continue
+
+                    # print(line)
+                    tokens, named_entities = line.strip().split()
+                    if named_entities != 'O':
+                        if named_entities[0] == 'B':
+                            cntdic[named_entities[2:]] += 1
+                    else:
+                        cntdic[named_entities] += 1
+    
+    total_count = sum(cntdic.values())
+    percentage_dic = {label: (count / total_count) * 100 for label, count in cntdic.items()}
+
+    
+    return percentage_dic
