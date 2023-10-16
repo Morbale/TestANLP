@@ -3,7 +3,7 @@ import argparse
 import os
 import random
 from transformers import AutoTokenizer
-from torch.utils.data import DataLoader
+
 
 # Create train, valid, test set from aggregated conll file
 def split_conll_file(args):
@@ -98,7 +98,7 @@ def tokenize_and_align_labels(tokenizer, token, label):
     return tokenized_inputs
 
 # read conll file, split by space and assign first to token, second to label
-def get_data(conll_file, model, batch_size):
+def get_data(conll_file, model):
     token = []
     label = []
     with open(conll_file, 'r') as f:
@@ -119,9 +119,9 @@ def get_data(conll_file, model, batch_size):
 
     dataset = SciDataset(input_id, label, attention_mask)
     
-    data_loader = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
+    # data_loader = DataLoader(dataset, batch_size=batch_size, collate_fn=dataset.collate_fn)
     
-    return data_loader
+    return dataset
 
 # to get token back: tokenizer.convert_ids_to_tokens(data['input_ids'])
 
