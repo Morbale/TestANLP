@@ -11,7 +11,7 @@ conda activate nlpfromscratch
 
 conda install pytorch==2.0.1 torchvision torchaudio -c pytorch
 # Use below instead if you would be using GPU
-# conda install pytorch torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
+# conda install pytorch==2.0.1 torchvision torchaudio cudatoolkit=11.1 -c pytorch -c nvidia
 
 
 python -m spacy download en_core_web_sm
