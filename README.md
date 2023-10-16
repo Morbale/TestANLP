@@ -2,10 +2,8 @@
 
 ## Installment
 ```bash
-conda create --name nlpfromscratch python=3.8
-conda activate nlpfromscratch
-conda install pytorch==2.0.1 torchvision torchaudio -c pytorch
-pip install -r requirements.txt
+chmod +x setup.sh
+source setup.sh
 ```
 
 ## Scraping

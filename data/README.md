@@ -7,9 +7,6 @@ Uses [SciPDF](https://github.com/titipata/scipdf_parser) parser to parse the pdf
 Open new terminal window and run following:
 ```bash
 conda activate nlpfromscratch
-python -m spacy download en_core_web_sm
-python -m spacy download en_core_web_lg
-conda install openjdk=11    # download arm64 version depending on your machine
 bash serve_grobid.sh
 ```
 Go back to your original terminal window and run following command. 
