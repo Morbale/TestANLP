@@ -42,18 +42,18 @@ def evaluate(data_loader, model, device):
         labels = labels.to(device)
 
         logits = model(input_ids, labels=labels)
-        logits = logits.detach().cpu().numpy()
+        logits = logits['logits'].detach().cpu().numpy()
+        # shape: [4096, 1, 15]
 
-        predictions = np.argmax(logits, dim=-1).flatten()
-        labels = labels.cpu().numpy().flatten()
+        predictions = np.argmax(logits, axis=-1)  #.flatten()
+        # labels = labels.flatten()
 
-        all_labels.extend(labels)
-        all_preds.extend(predictions)
+        all_preds.extend(predictions.flatten())
+        all_labels.extend(labels.cpu().numpy().flatten())
         token_ids.extend(input_ids.cpu().numpy().flatten())
 
         # all_labels.extend(data['labels'].view(-1).cpu().numpy())
         # all_preds.extend(predictions.view(-1).cpu().numpy())
-
     acc = accuracy_score(all_labels, all_preds)
     precision = precision_score(all_labels, all_preds, average='weighted')
     recall = recall_score(all_labels, all_preds, average='weighted')
@@ -113,7 +113,7 @@ def train(args):
             if dev_acc > best_dev_acc:
                 best_dev_acc = dev_acc
                 save_model(args, model, optimizer, args.modelpath)
-            print(f"epoch{epoch+1}/{args.epoch}: train_loss: {train_loss :.3f}, train_acc: {train_acc :.3f}, dev_acc: {dev_acc :.3f}")
+            print(f"epoch{epoch+1}/{args.epochs}: train_loss: {train_loss :.3f}, train_acc: {train_acc :.3f}, dev_acc: {dev_acc :.3f}")
 
 
 
