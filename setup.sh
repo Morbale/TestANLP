@@ -21,3 +21,5 @@ pip install -e git+https://github.com/titipata/scipdf_parser.git#egg=scipdf
 pip install spacy==3.6
 pip install bs4
 pip install chardet
+pip install transformers
+pip install scikit-learn
